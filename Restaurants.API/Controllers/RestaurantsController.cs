@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Restaurants.Data;
 using Restaurants.Dtos;
-using Restaurants.Models;
+using Restaurants.API.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 

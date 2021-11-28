@@ -1,6 +1,6 @@
 using AutoMapper;
 using Restaurants.Dtos;
-using Restaurants.Models;
+using Restaurants.API.Models;
 
 namespace Restaurants.Profiles
 {

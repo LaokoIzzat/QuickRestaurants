@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Restaurants.Models
+namespace Restaurants.API.Models
 {
     public class Restaurant
     {

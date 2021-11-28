@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Logging;
 
 namespace Restaurants
 {
@@ -34,12 +35,28 @@ namespace Restaurants
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            IdentityModelEventSource.ShowPII = true;
+
             // Can probably remove the below
             var jwtSettings = new JwtSettings();
             Configuration.Bind(nameof(jwtSettings), jwtSettings);
             services.AddSingleton(jwtSettings);
 
             services.Configure<JwtSettings>(Configuration.GetSection("JwtSettings"));
+
+            var key = Encoding.ASCII.GetBytes(Configuration["JwtSettings:Secret"]);
+
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                RequireExpirationTime = false,
+                ValidateLifetime = true
+            };
+
+            services.AddSingleton(tokenValidationParameters);
 
             services.AddAuthentication(x =>
             {
@@ -52,15 +69,8 @@ namespace Restaurants
                     var key = Encoding.ASCII.GetBytes(Configuration["JwtSettings:Secret"]);
 
                     jwt.SaveToken = true;
-                    jwt.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuerSigningKey = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(key),
-                        ValidateIssuer = false,
-                        ValidateAudience = false,
-                        RequireExpirationTime = false,
-                        ValidateLifetime = true
-                    };
+                    jwt.TokenValidationParameters = tokenValidationParameters;
+
                 });
 
             services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)

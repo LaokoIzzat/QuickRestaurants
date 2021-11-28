@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Restaurants.Models;
+using Restaurants.API.Models;
 
 namespace Restaurants.Data
 {
@@ -14,6 +14,8 @@ namespace Restaurants.Data
         // Represent Restaurant object down to database as a dbset, called Restaurants
         // we need this mapping of model object down to db with dbset for all models, we just have restaurant rn
         public DbSet<Restaurant> Restaurants { get; set; }
+
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
     }
 }

@@ -1,4 +1,4 @@
-using Restaurants.Models;
+using Restaurants.API.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
