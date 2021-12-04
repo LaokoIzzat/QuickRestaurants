@@ -14,7 +14,7 @@ namespace Restaurants.Controllers
     // api/restaurants
     [Route("api/v1/restaurants")]
     [ApiController]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "ModeratorRole")]
     public class RestaurantsController : ControllerBase
     {
         private readonly IRestaurantsRepo _repository;
@@ -29,6 +29,7 @@ namespace Restaurants.Controllers
 
         // GET api/v1/restaurants
         [HttpGet]
+        [Authorize(Policy = "RegularUserRole")]
         public async Task<ActionResult<IEnumerable<RestaurantReadDto>>> GetAllRestaurantsAsync()
         {
             var restaurantItems = await _repository.GetAllRestaurantsAsync();
@@ -37,7 +38,9 @@ namespace Restaurants.Controllers
         }
 
         // GET api/v1/restaurants/{id}
-        [HttpGet("{id}", Name = "GetRestaurantById")]
+        [HttpGet("{id}", Name = "GetRestaurantByIdAsync")]
+        [ActionName(nameof(GetRestaurantByIdAsync))]
+        [Authorize(Policy = "RegularUserRole")]
         public async Task<ActionResult<RestaurantReadDto>> GetRestaurantByIdAsync(int id)
         {
             var restaurantItem = await _repository.GetRestaurantByIdAsync(id);
@@ -62,7 +65,7 @@ namespace Restaurants.Controllers
             var restaurantReadDto = _mapper.Map<RestaurantReadDto>(restaurantModel);
 
             // the below return method gives location header too (RESTFUL)
-            return CreatedAtRoute(nameof(GetRestaurantByIdAsync), new { Id = restaurantReadDto.Id }, restaurantReadDto);
+            return CreatedAtRoute(nameof(GetRestaurantByIdAsync), new { id = restaurantReadDto.Id }, restaurantReadDto);
         }
 
         // PUT api/v1/restaurants/{id}

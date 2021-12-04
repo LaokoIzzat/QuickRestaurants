@@ -18,7 +18,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Restaurants.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly UserManager<IdentityUser> _userManager;
@@ -55,15 +55,124 @@ namespace Restaurants.API.Controllers
                     });
                 }
 
-                var newUser = new IdentityUser() { Email = user.Email, UserName = user.Username };
+                var newUserId = Guid.NewGuid();
+                var newUser = new IdentityUser() { Id = newUserId.ToString(), Email = user.Email, UserName = user.Username };
+
                 var isCreated = await _userManager.CreateAsync(newUser, user.Password);
 
                 if (isCreated.Succeeded)
                 {
+                    await _userManager.AddClaimAsync(newUser, new Claim("restaurant.create", "true"));
                     var jwtToken = await GenerateJwtTokenAsync(newUser);
 
                     return Ok(jwtToken);
                 } 
+                else
+                {
+                    return BadRequest(new RegistrationResponse()
+                    {
+                        Errors = isCreated.Errors.Select(x => x.Description).ToList(),
+                        Success = false
+                    });
+                }
+            }
+
+            return BadRequest(new RegistrationResponse()
+            {
+                Errors = new List<string>
+                {
+                    "Invalid payload"
+                },
+                Success = false
+            });
+        }
+
+        [HttpPost]
+        [Route("Register/Moderator")]
+        public async Task<IActionResult> RegisterModeratorAsync([FromBody] UserRegistrationDto user)
+        {
+            if (ModelState.IsValid)
+            {
+                // We can utilise the model
+                var existingUser = await _userManager.FindByEmailAsync(user.Email);
+
+                if (existingUser != null)
+                {
+                    return BadRequest(new RegistrationResponse()
+                    {
+                        Errors = new List<string>
+                        {
+                        "Email is already in use"
+                        },
+                        Success = false
+                    });
+                }
+
+                var newUserId = Guid.NewGuid();
+                var newUser = new IdentityUser() { Id = newUserId.ToString(), Email = user.Email, UserName = user.Username };
+
+                var isCreated = await _userManager.CreateAsync(newUser, user.Password);
+
+                if (isCreated.Succeeded)
+                {
+                    await _userManager.AddToRoleAsync(newUser, "Moderator");
+                    var jwtToken = await GenerateJwtTokenAsync(newUser);
+
+                    return Ok(jwtToken);
+                }
+                else
+                {
+                    return BadRequest(new RegistrationResponse()
+                    {
+                        Errors = isCreated.Errors.Select(x => x.Description).ToList(),
+                        Success = false
+                    });
+                }
+            }
+
+            return BadRequest(new RegistrationResponse()
+            {
+                Errors = new List<string>
+                {
+                    "Invalid payload"
+                },
+                Success = false
+            });
+        }
+
+        [HttpPost]
+        [Route("Register/RegularUser")]
+        public async Task<IActionResult> RegisterRegularUserAsync([FromBody] UserRegistrationDto user)
+        {
+            if (ModelState.IsValid)
+            {
+                // We can utilise the model
+                var existingUser = await _userManager.FindByEmailAsync(user.Email);
+
+                if (existingUser != null)
+                {
+                    return BadRequest(new RegistrationResponse()
+                    {
+                        Errors = new List<string>
+                        {
+                        "Email is already in use"
+                        },
+                        Success = false
+                    });
+                }
+
+                var newUserId = Guid.NewGuid();
+                var newUser = new IdentityUser() { Id = newUserId.ToString(), Email = user.Email, UserName = user.Username };
+
+                var isCreated = await _userManager.CreateAsync(newUser, user.Password);
+
+                if (isCreated.Succeeded)
+                {
+                    await _userManager.AddToRoleAsync(newUser, "RegularUser");
+                    var jwtToken = await GenerateJwtTokenAsync(newUser);
+
+                    return Ok(jwtToken);
+                }
                 else
                 {
                     return BadRequest(new RegistrationResponse()
@@ -305,15 +414,28 @@ namespace Restaurants.API.Controllers
 
             var key = Encoding.ASCII.GetBytes(_jwtSettings.Secret);
 
+            var claims = new List<Claim>
+            {
+                new Claim("Id", user.Id),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            var userClaims = await _userManager.GetClaimsAsync(user);
+
+            var userRoles = await _userManager.GetRolesAsync(user);
+
+            claims.AddRange(userClaims);
+            
+            foreach(var role in userRoles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new [] 
-                {
-                    new Claim("Id", user.Id),
-                    new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                    new Claim(JwtRegisteredClaimNames.Sub, user.Email),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-                }),
+                Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddSeconds(30),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };

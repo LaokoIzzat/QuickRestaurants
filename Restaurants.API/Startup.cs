@@ -35,6 +35,11 @@ namespace Restaurants
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddMvc(options =>
+            {
+                options.SuppressAsyncSuffixInActionNames = false;
+            });
+
             IdentityModelEventSource.ShowPII = true;
 
             // Can probably remove the below
@@ -73,7 +78,15 @@ namespace Restaurants
 
                 });
 
+            services.AddAuthorization(options => 
+            {
+                options.AddPolicy("Creator", builder => builder.RequireClaim("restaurant.create", "true"));
+                options.AddPolicy("ModeratorRole", builder => builder.RequireRole("Moderator"));
+                options.AddPolicy("RegularUserRole", builder => builder.RequireRole("RegularUser"));
+            });
+
             services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+                .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<RestaurantContext>();
 
             services.AddDbContext<RestaurantContext>(opt => 

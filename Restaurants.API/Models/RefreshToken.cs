@@ -13,6 +13,8 @@ namespace Restaurants.API.Models
 
         public string UserId { get; set; }
 
+        //[Key]
+        //[DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public string Token { get; set; }
 
         public string JwtId { get; set; }
