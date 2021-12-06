@@ -46,6 +46,11 @@ namespace Restaurants.Data
             return await _context.Restaurants.FirstOrDefaultAsync(p => p.Id == id);
         }
 
+        public async Task<Restaurant> GetRestaurantByNameAsync(string name)
+        {
+            return await _context.Restaurants.FirstOrDefaultAsync(p => p.Name == name);
+        }
+
         public async Task<bool> SaveChangesAsync()
         {
             return (await _context.SaveChangesAsync()) >= 0;

@@ -14,7 +14,7 @@ namespace Restaurants.Controllers
     // api/restaurants
     [Route("api/v1/restaurants")]
     [ApiController]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "ModeratorRole")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class RestaurantsController : ControllerBase
     {
         private readonly IRestaurantsRepo _repository;
@@ -29,7 +29,7 @@ namespace Restaurants.Controllers
 
         // GET api/v1/restaurants
         [HttpGet]
-        [Authorize(Policy = "RegularUserRole")]
+        [Authorize(Roles = "RegularUser, Moderator")]
         public async Task<ActionResult<IEnumerable<RestaurantReadDto>>> GetAllRestaurantsAsync()
         {
             var restaurantItems = await _repository.GetAllRestaurantsAsync();
@@ -39,8 +39,7 @@ namespace Restaurants.Controllers
 
         // GET api/v1/restaurants/{id}
         [HttpGet("{id}", Name = "GetRestaurantByIdAsync")]
-        [ActionName(nameof(GetRestaurantByIdAsync))]
-        [Authorize(Policy = "RegularUserRole")]
+        [Authorize(Roles = "RegularUser, Moderator")]
         public async Task<ActionResult<RestaurantReadDto>> GetRestaurantByIdAsync(int id)
         {
             var restaurantItem = await _repository.GetRestaurantByIdAsync(id);
@@ -54,8 +53,25 @@ namespace Restaurants.Controllers
             }
         }
 
+        // GET api/v1/restaurants/name/{name}
+        [HttpGet("name/{name}")]
+        [Authorize(Roles = "RegularUser, Moderator")]
+        public async Task<ActionResult<RestaurantReadDto>> GetRestaurantByNameAsync(string name)
+        {
+            var restaurantItem = await _repository.GetRestaurantByNameAsync(name);
+            if (restaurantItem != null)
+            {
+                return Ok(_mapper.Map<RestaurantReadDto>(restaurantItem));
+            }
+            else
+            {
+                return NotFound();
+            }
+        }
+
         // POST api/v1/restaurants
         [HttpPost]
+        [Authorize(Roles = "RegularUser, Moderator")]
         public async Task<ActionResult<RestaurantReadDto>> CreateRestaurantAsync(RestaurantCreateDto restaurantCreateDto)
         {
             var restaurantModel = _mapper.Map<Restaurant>(restaurantCreateDto);
@@ -65,11 +81,12 @@ namespace Restaurants.Controllers
             var restaurantReadDto = _mapper.Map<RestaurantReadDto>(restaurantModel);
 
             // the below return method gives location header too (RESTFUL)
-            return CreatedAtRoute(nameof(GetRestaurantByIdAsync), new { id = restaurantReadDto.Id }, restaurantReadDto);
+            return CreatedAtRoute(nameof(GetRestaurantByIdAsync), new { Id = restaurantReadDto.Id }, restaurantReadDto);
         }
 
         // PUT api/v1/restaurants/{id}
         [HttpPut("{id}")]
+        [Authorize(Policy = "ModeratorRole")]
         public async Task<ActionResult> UpdateRestaurantAsync(int id, RestaurantUpdateDto restaurantUpdateDto)
         {
             var restaurantModelFromRepo = await _repository.GetRestaurantByIdAsync(id);
@@ -90,6 +107,7 @@ namespace Restaurants.Controllers
 
         // PATCH api/v1/restaurants/{id}
         [HttpPatch("{id}")]
+        [Authorize(Policy = "ModeratorRole")]
         public async Task<ActionResult> PartialRestaurantUpdateAsync(int id, JsonPatchDocument<RestaurantUpdateDto> patchDoc)
         {
             var restaurantModelFromRepo = await _repository.GetRestaurantByIdAsync(id);
@@ -118,6 +136,7 @@ namespace Restaurants.Controllers
 
         // DELETE api/v1/restaurants/{id}
         [HttpDelete("{id}")]
+        [Authorize(Policy = "ModeratorRole")]
         public async Task<ActionResult> DeleteRestaurantAsync(int id)
         {
             // check if the restaurant id is found, if not return not found
